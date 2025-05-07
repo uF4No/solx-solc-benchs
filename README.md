@@ -1,12 +1,10 @@
 # 🧪 solx vs solc — Community Benchmark Suite
 
 <p align="center">
-  <img src="./solx-logo.png" width="400" alt="Solx vs Solc">
+  <img src="./solx-logo.png" width="200" alt="Solx vs Solc">
 </p>
 
-Welcome to the official comparison suite for the [solx](https://github.com/matter-labs/solx) compiler — a new Solidity compiler built on top of LLVM.
-
-This repo allows developers to submit their own smart contracts to **benchmark and compare** how `solx` performs against `solc` in terms of **output, performance, and compatibility**.
+This repo allows developers to submit their own smart contracts to **benchmark and compare** how [`solx`](https://github.com/matter-labs/solx) performs against `solc` in terms of **output, performance, and compatibility**.
 
 ---
 
