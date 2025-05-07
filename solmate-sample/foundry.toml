@@ -1,0 +1,11 @@
+[profile.default]
+solc = "0.8.28"
+bytecode_hash = "none"
+optimizer = true
+optimizer_runs = 1000000
+
+[profile.intense.fuzz]
+runs = 10000
+
+[profile.solx]
+solc_version = "../binaries-solx/solx-macosx-v0.1.0-alpha.3"
