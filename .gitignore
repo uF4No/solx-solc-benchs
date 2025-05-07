@@ -1,1 +1,3 @@
 binaries-solx/solx*
+.DS_Store
+.env
