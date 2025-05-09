@@ -56,22 +56,52 @@ We provide a Foundry template in `/template-foundry-project` that includes:
      solc_version = "../binaries-solx/solx-macosx-v0.1.0-alpha.3"
      ```
 
-5. **Run the benchmark:**
+---
+
+## 📊 Running Benchmarks
+
+### Using the Compare Script
+
+The `compare.sh` script automates the process of generating gas reports for both compilers:
+
+```bash
+./compare.sh my-contracts
+```
+
+This will:
+1. Read the solc version from your project's `foundry.toml`
+2. Extract the solx version from the binary path
+3. Generate gas reports for both compilers in `reports/my-contracts/`:
+   - `gas-report-solc-{version}.json`
+   - `gas-report-solx-{version}.json`
+
+### Viewing Results in the Dashboard
+
+We provide an interactive dashboard to visualize the comparison results:
+
+1. **Build the Dashboard:**
    ```bash
-   # Run comparison for your project
-   ./compare.sh my-contracts
+   cd dashboard
+   node build.js
    ```
+   This will process all reports and generate the visualization data.
 
-   This will:
-   - Create a `reports/my-contracts/` directory
-   - Generate gas snapshots for both compilers
-   - Create a detailed gas comparison report
-   - Output files will include compiler versions in their names
+2. **View the Dashboard:**
+   - Open `dashboard/index.html` in your browser
+   - Select your project from the dropdown
+   - View detailed gas comparisons for:
+     - Contract deployment costs
+     - Method-by-method gas usage
+     - Multiple compiler versions (if available)
 
-6. **Submit a PR with:**
-   - Your project folder
-   - The generated reports
-   - Any notes or known issues
+The dashboard features:
+- Interactive charts showing gas usage comparisons
+- Detailed deployment cost analysis
+- Method-by-method gas usage breakdown
+- Support for multiple compiler versions
+- Color-coded visualization (purple for solc, blue for solx)
+
+---
 
 ## 💡 Guidelines
 
