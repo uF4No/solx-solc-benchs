@@ -22,9 +22,8 @@ if [ ! -f "$TARGET_DIR/foundry.toml" ]; then
 fi
 
 # Create reports directory structure
-REPORTS_DIR="reports"
-PROJECT_REPORTS_DIR="$REPORTS_DIR/$TARGET_DIR"
-mkdir -p "$PROJECT_REPORTS_DIR"
+REPORTS_DIR="reports/$TARGET_DIR"
+mkdir -p "$REPORTS_DIR"
 
 # Change to target directory
 cd "$TARGET_DIR" || exit 1
@@ -69,35 +68,31 @@ echo "  - solc v${SOLC_VERSION}"
 echo "  - solx v${SOLX_VERSION}"
 echo
 
-# Generate filenames with versions (in reports directory)
-SOLC_SNAP="../$PROJECT_REPORTS_DIR/gas-snap-solc-${SOLC_VERSION}.map"
-SOLX_SNAP="../$PROJECT_REPORTS_DIR/gas-snap-solx-${SOLX_VERSION}.map"
-DIFF_OUTPUT="../$PROJECT_REPORTS_DIR/gas-diff-solc${SOLC_VERSION}-vs-solx${SOLX_VERSION}.txt"
+# Generate filenames with versions
+SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}.json"
+SOLX_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}.json"
 
 echo "Will generate files in reports/$TARGET_DIR/:"
-echo "  - Solc snapshot: $(basename "$SOLC_SNAP")"
-echo "  - Solx snapshot: $(basename "$SOLX_SNAP")"
-echo "  - Diff report:   $(basename "$DIFF_OUTPUT")"
+echo "  - Solc report: $(basename "$SOLC_REPORT")"
+echo "  - Solx report: $(basename "$SOLX_REPORT")"
 echo
 
 # Clean up in case of previous runs
 forge clean
-rm -f "$SOLC_SNAP" "$SOLX_SNAP" "$DIFF_OUTPUT"
+rm -f "$SOLC_REPORT" "$SOLX_REPORT"
 
-# Compile with solc and save output to a file
-echo "Running solc snapshot..."
-forge snapshot --snap "$SOLC_SNAP"
+# Run tests with solc and generate gas report
+echo "Running solc gas report..."
+forge test --gas-report --json > "$SOLC_REPORT"
 
 # Clean up
 forge clean
 
-# Compile and test with solx and save output to a file
-# Show output in real-time and save only the diff part to file
-echo "Running solx snapshot and generating diff..."
-FOUNDRY_PROFILE=solx forge snapshot --diff "$SOLC_SNAP" 2>&1 | tee >(sed -n '/^Ran/,$p' > "$DIFF_OUTPUT")
+# Run tests with solx and generate gas report
+echo "Running solx gas report..."
+FOUNDRY_PROFILE=solx forge test --gas-report --json > "$SOLX_REPORT"
 
 echo
 echo "Generated files in reports/$TARGET_DIR/:"
-echo "  Solc snapshot: $(basename "$SOLC_SNAP")"
-echo "  Solx snapshot: $(basename "$SOLX_SNAP")"
-echo "  Diff report:   $(basename "$DIFF_OUTPUT")" 
+echo "  Solc report: $(basename "$SOLC_REPORT")"
+echo "  Solx report: $(basename "$SOLX_REPORT")" 
