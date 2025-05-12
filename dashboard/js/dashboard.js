@@ -207,7 +207,7 @@ function createChart(data, index) {
         const backgroundColor = colorScheme.getColor(vIndex, allVersions.length);
         
         datasets.push({
-            label: `${compilerType} ${version.compiler.version} gas`,
+            label: `${compilerType} ${version.compiler.version}`,
             data: data.results.map(r => r.versions[vIndex]?.gas || 0),
             backgroundColor,
             borderColor: colorScheme.getBorderColor(backgroundColor),
@@ -247,7 +247,7 @@ function createChart(data, index) {
                             const result = sortedResults[context.dataIndex];
                             const version = result.versions[context.datasetIndex];
                             return [
-                                `${version.compiler.type} ${version.compiler.version}: ${version.gas.toLocaleString()} gas`
+                                `${version.compiler.type} ${version.compiler.version}: ${version.gas.toLocaleString()}`
                             ];
                         }
                     }

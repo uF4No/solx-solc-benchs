@@ -704,6 +704,94 @@ const REPORTS_DATA = {
       }
     ]
   },
+  "short-algos": {
+    "solc": [
+      {
+        "contract": "src/ShortAlgos.sol:ShortAlgos",
+        "deployment": {
+          "gas": 488574,
+          "size": 2046
+        },
+        "functions": {
+          "bubbleSort(uint256[])": {
+            "calls": 8,
+            "min": 698,
+            "mean": 448289,
+            "median": 11376,
+            "max": 3395320
+          },
+          "insertionSort(uint256[])": {
+            "calls": 8,
+            "min": 591,
+            "mean": 300342,
+            "median": 8293,
+            "max": 2266173
+          },
+          "isSorted(uint256[])": {
+            "calls": 15,
+            "min": 536,
+            "mean": 9118,
+            "median": 3160,
+            "max": 35933
+          },
+          "quickSort(uint256[])": {
+            "calls": 8,
+            "min": 673,
+            "mean": 256948,
+            "median": 14021,
+            "max": 1899910
+          }
+        },
+        "compiler": {
+          "type": "solc",
+          "version": "0.8.28"
+        }
+      }
+    ],
+    "solx": [
+      {
+        "contract": "src/ShortAlgos.sol:ShortAlgos",
+        "deployment": {
+          "gas": 501498,
+          "size": 2120
+        },
+        "functions": {
+          "bubbleSort(uint256[])": {
+            "calls": 8,
+            "min": 659,
+            "mean": 157156,
+            "median": 6202,
+            "max": 1177413
+          },
+          "insertionSort(uint256[])": {
+            "calls": 8,
+            "min": 569,
+            "mean": 123079,
+            "median": 4505,
+            "max": 921403
+          },
+          "isSorted(uint256[])": {
+            "calls": 15,
+            "min": 551,
+            "mean": 4650,
+            "median": 1848,
+            "max": 17325
+          },
+          "quickSort(uint256[])": {
+            "calls": 8,
+            "min": 661,
+            "mean": 153523,
+            "median": 7049,
+            "max": 1142426
+          }
+        },
+        "compiler": {
+          "type": "solx",
+          "version": "0.1.0-alpha.3"
+        }
+      }
+    ]
+  },
   "solmate-sample": {
     "solc": [
       {
