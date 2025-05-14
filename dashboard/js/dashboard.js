@@ -116,17 +116,24 @@ function calculateContractDiff(contractData) {
     let totalGasChange = 0;
     let methodCount = 0;
 
+    // Find compiler settings objects and contract objects
+    const settingsObjects = contractData.filter(obj => obj.compilerSettings && !obj.contract);
+    const contractObjects = contractData.filter(obj => obj.contract);
+
     // Group data by function name across all compiler versions
     const functionData = {};
     
-    contractData.forEach(version => {
+    contractObjects.forEach(version => {
         Object.entries(version.functions).forEach(([funcName, data]) => {
             if (!functionData[funcName]) {
                 functionData[funcName] = [];
             }
+            // Add compiler settings to the version data
+            const settings = settingsObjects.find(s => s.compiler.type === version.compiler.type)?.compilerSettings || {};
             functionData[funcName].push({
                 compiler: version.compiler,
-                gas: data.mean
+                gas: data.mean,
+                compilerSettings: settings
             });
         });
     });
@@ -141,16 +148,20 @@ function calculateContractDiff(contractData) {
     });
 
     // Get deployment info for all versions
-    const deploymentInfo = contractData.map(version => ({
-        compiler: version.compiler,
-        gas: version.deployment.gas
-    }));
+    const deploymentInfo = contractObjects.map(version => {
+        const settings = settingsObjects.find(s => s.compiler.type === version.compiler.type)?.compilerSettings || {};
+        return {
+            compiler: version.compiler,
+            gas: version.deployment.gas,
+            compilerSettings: settings
+        };
+    });
 
     return {
         results,
         deployment: deploymentInfo,
         methodCount,
-        contractName: contractData[0].contract
+        contractName: contractObjects[0].contract
     };
 }
 
@@ -161,14 +172,25 @@ function calculateGasDiff(solcData, solxData) {
         return [];
     }
 
-    // Group contracts by their name
+    // Group contracts by their name, filtering out objects without contract property
     const contractGroups = {};
     
-    [...solcData, ...solxData].forEach(contract => {
-        if (!contractGroups[contract.contract]) {
-            contractGroups[contract.contract] = [];
+    [...solcData, ...solxData].forEach(item => {
+        if (!item.contract) return; // Skip items without contract property
+        
+        if (!contractGroups[item.contract]) {
+            contractGroups[item.contract] = [];
         }
-        contractGroups[contract.contract].push(contract);
+        // Add all items from the same compiler type to the group
+        const compilerType = item.compiler.type;
+        const settingsObject = [...solcData, ...solxData].find(
+            s => s.compilerSettings && !s.contract && s.compiler.type === compilerType
+        );
+        
+        contractGroups[item.contract].push(item);
+        if (settingsObject) {
+            contractGroups[item.contract].push(settingsObject);
+        }
     });
 
     // Process each contract group
@@ -197,6 +219,13 @@ function createChartContainer(contractName, index) {
 function createChart(data, index) {
     const ctx = document.getElementById(`gasChart${index}`).getContext('2d');
     
+    // Sort results by maximum gas usage
+    const sortedResults = [...data.results].sort((a, b) => {
+        const maxA = Math.max(...a.versions.map(v => Number(v.gas)));
+        const maxB = Math.max(...b.versions.map(v => Number(v.gas)));
+        return maxB - maxA;
+    });
+
     // Create datasets for each compiler version
     const datasets = [];
     const allVersions = data.results[0].versions;
@@ -206,22 +235,27 @@ function createChart(data, index) {
         const colorScheme = colorSchemes[compilerType];
         const backgroundColor = colorScheme.getColor(vIndex, allVersions.length);
         
-        datasets.push({
+        // Create dataset for this version
+        const dataset = {
             label: `${compilerType} ${version.compiler.version}`,
-            data: data.results.map(r => r.versions[vIndex]?.gas || 0),
             backgroundColor,
             borderColor: colorScheme.getBorderColor(backgroundColor),
             borderWidth: 1,
-            barPercentage: 0.9,
-            categoryPercentage: 0.5
-        });
-    });
+            barPercentage: 0.95,
+            categoryPercentage: 0.8,
+            data: []
+        };
 
-    // Sort results by maximum gas usage
-    const sortedResults = [...data.results].sort((a, b) => {
-        const maxA = Math.max(...a.versions.map(v => v.gas));
-        const maxB = Math.max(...b.versions.map(v => v.gas));
-        return maxB - maxA;
+        // Fill in data for each method in sorted order
+        sortedResults.forEach(method => {
+            const matchingVersion = method.versions.find(v => 
+                v.compiler.type === version.compiler.type && 
+                v.compiler.version === version.compiler.version
+            );
+            dataset.data.push(matchingVersion ? Number(matchingVersion.gas) : 0);
+        });
+
+        datasets.push(dataset);
     });
 
     // Create chart
@@ -244,11 +278,14 @@ function createChart(data, index) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const result = sortedResults[context.dataIndex];
-                            const version = result.versions[context.datasetIndex];
-                            return [
-                                `${version.compiler.type} ${version.compiler.version}: ${version.gas.toLocaleString()}`
-                            ];
+                            const methodName = sortedResults[context.dataIndex].name;
+                            const version = allVersions[context.datasetIndex];
+                            const matchingVersion = sortedResults[context.dataIndex].versions.find(v => 
+                                v.compiler.type === version.compiler.type && 
+                                v.compiler.version === version.compiler.version
+                            );
+                            const gas = matchingVersion ? Number(matchingVersion.gas).toLocaleString() : '0';
+                            return `${version.compiler.type} ${version.compiler.version}: ${gas} gas`;
                         }
                     }
                 }
@@ -259,6 +296,8 @@ function createChart(data, index) {
                     grid: { display: false }
                 },
                 x: {
+                    type: 'linear',
+                    beginAtZero: true,
                     grid: { color: '#e0e0e0' },
                     title: {
                         display: true,
@@ -267,7 +306,7 @@ function createChart(data, index) {
                     },
                     ticks: {
                         callback: function(value) {
-                            return value.toLocaleString();
+                            return Number(value).toLocaleString();
                         }
                     }
                 }
@@ -279,18 +318,154 @@ function createChart(data, index) {
 // Function to update summary for a single contract
 function updateSummary(data, index) {
     const summary = document.getElementById(`summary${index}`);
-    const deploymentHtml = data.deployment.map(version => `
-        <p>${version.compiler.type} ${version.compiler.version} gas: ${version.gas.toLocaleString()}</p>
-    `).join('');
+    
+    // Sort deployment data by gas usage (ascending)
+    const sortedDeployment = [...data.deployment].sort((a, b) => a.gas - b.gas);
+    const baseGas = sortedDeployment[0].gas;
+    
+    const deploymentHtml = sortedDeployment.map((version, idx) => {
+        const percentageIncrease = idx === 0 ? '' : 
+            ` <span class="text-red-500 font-medium">(+${((version.gas - baseGas) / baseGas * 100).toFixed(1)}%)</span>`;
+            
+        // Add special background for solx row
+        const rowBgClass = version.compiler.type === 'solx' ? 
+            'bg-blue-50 border border-blue-100' : 
+            'bg-gray-50';
+            
+        return `
+            <div class="flex justify-between items-center ${rowBgClass} rounded-lg px-4 py-3 font-mono text-sm">
+                <span class="${version.compiler.type === 'solx' ? 'text-solx font-medium' : 'text-gray-700'}">${version.compiler.type} ${version.compiler.version}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-900 font-medium">${version.gas.toLocaleString()} gas</span>
+                    ${percentageIncrease}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Process method comparisons
+    const methodComparisons = [];
+    data.results.forEach(method => {
+        const versions = method.versions;
+        // Group by compiler type
+        const byCompiler = {};
+        versions.forEach(v => {
+            if (!byCompiler[v.compiler.type]) {
+                byCompiler[v.compiler.type] = {
+                    version: v.compiler.version,
+                    gas: v.gas
+                };
+            }
+        });
+        
+        // Calculate savings if we have both solc and solx
+        if (byCompiler.solc && byCompiler.solx) {
+            const savings = byCompiler.solc.gas - byCompiler.solx.gas;
+            const savingsPercent = (savings / byCompiler.solc.gas) * 100;
+            methodComparisons.push({
+                name: method.name,
+                savings,
+                savingsPercent,
+                solcGas: byCompiler.solc.gas,
+                solxGas: byCompiler.solx.gas
+            });
+        }
+    });
+
+    // Sort by savings percentage
+    methodComparisons.sort((a, b) => b.savingsPercent - a.savingsPercent);
+
+    // Count methods where solx is more efficient
+    const solxWins = methodComparisons.filter(m => m.savings > 0).length;
+
+    // Generate comparison summaries
+    const comparisonSummaries = [];
+    const solcVersions = [...new Set(data.results[0].versions
+        .filter(v => v.compiler.type === 'solc')
+        .map(v => v.compiler.version))];
+
+    solcVersions.forEach(solcVersion => {
+        const relevantComparisons = data.results.map(method => {
+            const solcData = method.versions.find(v => 
+                v.compiler.type === 'solc' && 
+                v.compiler.version === solcVersion
+            );
+            const solxData = method.versions.find(v => v.compiler.type === 'solx');
+            
+            if (solcData && solxData) {
+                const savings = solcData.gas - solxData.gas;
+                const savingsPercent = (savings / solcData.gas) * 100;
+                return {
+                    name: method.name,
+                    savings,
+                    savingsPercent,
+                    solcGas: solcData.gas,
+                    solxGas: solxData.gas
+                };
+            }
+            return null;
+        }).filter(Boolean);
+
+        // Sort by savings percentage
+        relevantComparisons.sort((a, b) => b.savingsPercent - a.savingsPercent);
+
+        if (relevantComparisons.length > 0) {
+            const solxWinsCount = relevantComparisons.filter(m => m.savings > 0).length;
+            const efficientMethods = relevantComparisons
+                .filter(m => m.savings > 0)
+                .map(m => `
+                    <div class="flex justify-between items-center bg-white rounded-lg p-3 font-mono text-sm">
+                        <span class="text-gray-900">${m.name}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-solc">${m.solcGas.toLocaleString()}</span>
+                            <span class="text-gray-400">→</span>
+                            <span class="text-solx">${m.solxGas.toLocaleString()}</span>
+                            <span class="text-green-500">(${m.savingsPercent.toFixed(2)}%)</span>
+                        </div>
+                    </div>
+                `).join('');
+            
+            comparisonSummaries.push(`
+                <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                    <div class="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h5 class="font-semibold text-gray-900">solx vs solc ${solcVersion}</h5>
+                        <span class="text-gray-500 text-sm">${solxWinsCount} out of ${relevantComparisons.length} methods</span>
+                    </div>
+                    <div class="p-6">
+                        <div class="text-gray-700 font-medium mb-4">methods where solx is more efficient:</div>
+                        <div class="space-y-2">
+                            ${efficientMethods}
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+    });
 
     summary.innerHTML = `
-        <div class="deployment-info">
-            <h4>Contract Deployment</h4>
-            ${deploymentHtml}
-        </div>
-        <div class="methods-info">
-            <h4>Methods Summary</h4>
-            <p>Number of Tested Methods: ${data.methodCount}</p>
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="border-b border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-900 px-6 py-4">Contract Deployment</h4>
+                </div>
+                <div class="p-6 space-y-3">
+                    ${deploymentHtml}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="border-b border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-900 px-6 py-4">Methods Summary</h4>
+                </div>
+                <div class="p-6">
+                    <div class="text-gray-600 pb-4 mb-6 border-b border-gray-200">
+                        Total Methods Tested: ${data.methodCount}
+                    </div>
+                    <div class="space-y-6">
+                        ${comparisonSummaries.join('')}
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -306,12 +481,15 @@ function updateChart(data) {
     charts.forEach(chart => chart.destroy());
     charts = [];
     
-    // Clear only the chart and summary sections
-    const container = document.querySelector('.container');
+    // Get the chart container
+    const container = document.getElementById('chartContainer');
+    if (!container) {
+        console.error('Chart container not found');
+        return;
+    }
     
-    // Remove old chart sections but keep header and controls
-    const oldSections = container.querySelectorAll('.contract-section');
-    oldSections.forEach(section => section.remove());
+    // Clear the container
+    container.innerHTML = '';
 
     // Create sections for each contract
     data.forEach((contractData, index) => {
@@ -320,8 +498,11 @@ function updateChart(data) {
         container.appendChild(contractSection);
 
         // Create chart and update summary
-        charts.push(createChart(contractData, index));
-        updateSummary(contractData, index);
+        const chart = createChart(contractData, index);
+        if (chart) {
+            charts.push(chart);
+            updateSummary(contractData, index);
+        }
     });
 }
 

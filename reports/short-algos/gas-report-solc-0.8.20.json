@@ -1,0 +1,9 @@
+[{
+    "compilerSettings": {
+        "optimizer": true,
+        "optimizer_runs": 20000,
+        "via_ir": false
+    }
+},
+{"contract":"src/ShortAlgos.sol:ShortAlgos","deployment":{"gas":538832,"size":2281},"functions":{"bubbleSort(uint256[])":{"calls":8,"min":791,"mean":558917,"median":15064,"max":4228158},"insertionSort(uint256[])":{"calls":8,"min":725,"mean":288616,"median":8697,"max":2172479},"isSorted(uint256[])":{"calls":15,"min":633,"mean":11807,"median":4063,"max":46680},"quickSort(uint256[])":{"calls":8,"min":769,"mean":243846,"median":13171,"max":1801389}}}]
+

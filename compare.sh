@@ -63,13 +63,34 @@ if [ -z "$SOLX_VERSION" ]; then
 fi
 echo "Found solx version: $SOLX_VERSION"
 
+# Read compiler settings from foundry.toml
+echo "Reading compiler settings..."
+OPTIMIZER=$(grep -E '^[[:space:]]*optimizer[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
+OPTIMIZER_RUNS=$(grep -E '^[[:space:]]*optimizer_runs[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
+VIA_IR=$(grep -E '^[[:space:]]*via_ir[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
+
+# Set default values if not found
+OPTIMIZER=${OPTIMIZER:-true}
+OPTIMIZER_RUNS=${OPTIMIZER_RUNS:-200}
+VIA_IR=${VIA_IR:-false}
+
+echo "Compiler settings:"
+echo "  - optimizer: $OPTIMIZER"
+echo "  - optimizer_runs: $OPTIMIZER_RUNS"
+echo "  - via_ir: $VIA_IR"
+echo
+
 echo "Preparing comparison between:"
 echo "  - solc v${SOLC_VERSION}"
 echo "  - solx v${SOLX_VERSION}"
 echo
 
 # Generate filenames with versions
-SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}.json"
+if [ "$VIA_IR" = "true" ]; then
+    SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-via-ir.json"
+else
+    SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}.json"
+fi
 SOLX_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}.json"
 
 echo "Will generate files in reports/$TARGET_DIR/:"
@@ -81,16 +102,55 @@ echo
 forge clean
 rm -f "$SOLC_REPORT" "$SOLX_REPORT"
 
+# Clean optimizer_runs value by removing underscores
+OPTIMIZER_RUNS_CLEAN=$(echo "$OPTIMIZER_RUNS" | tr -d '_')
+
 # Run tests with solc and generate gas report
 echo "Running solc gas report..."
-forge test --gas-report --json > "$SOLC_REPORT"
+if ! forge test --gas-report --json > "$SOLC_REPORT"; then
+    echo "Error: Failed to run forge test for solc"
+    exit 1
+fi
+
+# Create a temporary file with the compiler settings
+TMP_SETTINGS=$(mktemp)
+echo '[{
+    "compilerSettings": {
+        "optimizer": '"$OPTIMIZER"',
+        "optimizer_runs": '"$OPTIMIZER_RUNS_CLEAN"',
+        "via_ir": '"$VIA_IR"'
+    }
+},' > "$TMP_SETTINGS"
+
+# Read the original file content (skipping the first [)
+tail -c +2 "$SOLC_REPORT" > "$SOLC_REPORT.tmp"
+
+# Combine the files
+cat "$TMP_SETTINGS" "$SOLC_REPORT.tmp" > "$SOLC_REPORT"
+rm "$TMP_SETTINGS" "$SOLC_REPORT.tmp"
 
 # Clean up
 forge clean
 
 # Run tests with solx and generate gas report
 echo "Running solx gas report..."
-FOUNDRY_PROFILE=solx forge test --gas-report --json > "$SOLX_REPORT"
+if ! FOUNDRY_PROFILE=solx forge test --gas-report --json > "$SOLX_REPORT"; then
+    echo "Error: Failed to run forge test for solx"
+    exit 1
+fi
+
+# Create a temporary file with the compiler settings
+TMP_SETTINGS=$(mktemp)
+echo '[{
+    "compilerSettings": {}
+},' > "$TMP_SETTINGS"
+
+# Read the original file content (skipping the first [)
+tail -c +2 "$SOLX_REPORT" > "$SOLX_REPORT.tmp"
+
+# Combine the files
+cat "$TMP_SETTINGS" "$SOLX_REPORT.tmp" > "$SOLX_REPORT"
+rm "$TMP_SETTINGS" "$SOLX_REPORT.tmp"
 
 echo
 echo "Generated files in reports/$TARGET_DIR/:"

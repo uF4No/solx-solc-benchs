@@ -1,2 +1,5 @@
-[{"contract":"src/ShortAlgos.sol:ShortAlgos","deployment":{"gas":501498,"size":2120},"functions":{"bubbleSort(uint256[])":{"calls":8,"min":659,"mean":157156,"median":6202,"max":1177413},"insertionSort(uint256[])":{"calls":8,"min":569,"mean":123079,"median":4505,"max":921403},"isSorted(uint256[])":{"calls":15,"min":551,"mean":4650,"median":1848,"max":17325},"quickSort(uint256[])":{"calls":8,"min":661,"mean":153523,"median":7049,"max":1142426}}}]
+[{
+    "compilerSettings": {}
+},
+{"contract":"src/ShortAlgos.sol:ShortAlgos","deployment":{"gas":501498,"size":2120},"functions":{"bubbleSort(uint256[])":{"calls":8,"min":659,"mean":157156,"median":6202,"max":1177413},"insertionSort(uint256[])":{"calls":8,"min":569,"mean":123079,"median":4505,"max":921403},"isSorted(uint256[])":{"calls":15,"min":551,"mean":4650,"median":1848,"max":17325},"quickSort(uint256[])":{"calls":8,"min":661,"mean":153523,"median":7049,"max":1142426}}}]
 
