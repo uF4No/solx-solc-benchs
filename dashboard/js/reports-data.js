@@ -306,8 +306,8 @@ const REPORTS_DATA = {
           },
           "approve(address,uint256)": {
             "calls": 1544,
-            "min": 24098,
-            "mean": 42965,
+            "min": 24086,
+            "mean": 43045,
             "median": 45830,
             "max": 46382
           },
@@ -335,14 +335,14 @@ const REPORTS_DATA = {
           "transfer(address,uint256)": {
             "calls": 300,
             "min": 28097,
-            "mean": 50109,
+            "mean": 50262,
             "median": 50833,
             "max": 50929
           },
           "transferFrom(address,address,uint256)": {
             "calls": 1538,
             "min": 30950,
-            "mean": 45759,
+            "mean": 45685,
             "median": 39446,
             "max": 56558
           }
@@ -355,13 +355,6 @@ const REPORTS_DATA = {
     ],
     "solx": [
       {
-        "compilerSettings": {},
-        "compiler": {
-          "type": "solx",
-          "version": "0.1.0-alpha.3"
-        }
-      },
-      {
         "contract": "src/MyToken.sol:MyToken",
         "deployment": {
           "gas": 544653,
@@ -369,21 +362,21 @@ const REPORTS_DATA = {
         },
         "functions": {
           "allowance(address,address)": {
-            "calls": 2567,
+            "calls": 2172,
             "min": 2504,
             "mean": 2504,
             "median": 2504,
             "max": 2504
           },
           "approve(address,uint256)": {
-            "calls": 1544,
-            "min": 23967,
-            "mean": 42878,
+            "calls": 1466,
+            "min": 21819,
+            "mean": 42697,
             "median": 45699,
             "max": 46251
           },
           "balanceOf(address)": {
-            "calls": 5133,
+            "calls": 4741,
             "min": 2399,
             "mean": 2399,
             "median": 2399,
@@ -406,15 +399,15 @@ const REPORTS_DATA = {
           "transfer(address,uint256)": {
             "calls": 300,
             "min": 27946,
-            "mean": 50186,
+            "mean": 49733,
             "median": 50682,
             "max": 50778
           },
           "transferFrom(address,address,uint256)": {
-            "calls": 1538,
-            "min": 30772,
-            "mean": 45465,
-            "median": 39268,
+            "calls": 1222,
+            "min": 30631,
+            "mean": 46213,
+            "median": 51496,
             "max": 56380
           }
         },

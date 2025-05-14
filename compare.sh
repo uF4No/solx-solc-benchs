@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Store the root directory
+ROOT_DIR="$(pwd)"
+
+# Check if Node.js is installed
+if ! command -v node &> /dev/null; then
+    echo "Error: Node.js is required but not installed"
+    echo "Please install Node.js from https://nodejs.org/"
+    exit 1
+fi
+
 # Check if directory argument is provided
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <directory>"
@@ -155,4 +165,29 @@ rm "$TMP_SETTINGS" "$SOLX_REPORT.tmp"
 echo
 echo "Generated files in reports/$TARGET_DIR/:"
 echo "  Solc report: $(basename "$SOLC_REPORT")"
-echo "  Solx report: $(basename "$SOLX_REPORT")" 
+echo "  Solx report: $(basename "$SOLX_REPORT")"
+
+# Return to the root directory
+cd "$ROOT_DIR" || exit 1
+
+# Build the dashboard
+echo
+echo "Building the dashboard..."
+if [ ! -f "dashboard/build.js" ]; then
+    echo "Error: dashboard/build.js not found"
+    echo "Please make sure you're running this script from the repository root"
+    exit 1
+fi
+
+cd dashboard || exit 1
+if ! node build.js; then
+    echo "Error: Failed to build the dashboard"
+    cd "$ROOT_DIR" || exit 1
+    exit 1
+fi
+cd "$ROOT_DIR" || exit 1
+
+echo
+echo "✨ Done! You can now view the results by:"
+echo "1. Opening dashboard/index.html in your browser"
+echo "2. Selecting '$TARGET_DIR' from the dropdown" 
