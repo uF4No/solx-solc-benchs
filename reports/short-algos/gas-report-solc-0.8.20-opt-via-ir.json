@@ -1,7 +1,7 @@
 [{
     "compilerSettings": {
         "optimizer": true,
-        "optimizer_runs": 20000,
+        "optimizer_runs": 200,
         "via_ir": true
     }
 },

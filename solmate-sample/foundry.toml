@@ -3,7 +3,9 @@ solc = "0.8.28"
 bytecode_hash = "none"
 optimizer = true
 optimizer_runs = 1000000
-via_ir = true
+# No need to run with the optimizer and via-ir settings. The compare.sh script will run with and without them.
+# optimizer = true
+# via_ir = true # Uncomment to use via IR
 
 [profile.intense.fuzz]
 runs = 10000

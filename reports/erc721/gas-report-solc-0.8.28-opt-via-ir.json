@@ -1,0 +1,9 @@
+[{
+    "compilerSettings": {
+        "optimizer": true,
+        "optimizer_runs": 200,
+        "via_ir": true
+    }
+},
+{"contract":"src/ERC721.sol:MyToken","deployment":{"gas":1998393,"size":9666},"functions":{"approve(address,uint256)":{"calls":1,"min":48230,"mean":48230,"median":48230,"max":48230},"balanceOf(address)":{"calls":4,"min":2714,"mean":2714,"median":2714,"max":2714},"burn(uint256)":{"calls":1,"min":43391,"mean":43391,"median":43391,"max":43391},"getApproved(uint256)":{"calls":1,"min":4597,"mean":4597,"median":4597,"max":4597},"isApprovedForAll(address,address)":{"calls":1,"min":3009,"mean":3009,"median":3009,"max":3009},"name()":{"calls":1,"min":2792,"mean":2792,"median":2792,"max":2792},"ownerOf(uint256)":{"calls":6,"min":2630,"mean":2647,"median":2651,"max":2651},"pause()":{"calls":2,"min":27876,"mean":27876,"median":27876,"max":27876},"paused()":{"calls":3,"min":2510,"mean":2510,"median":2510,"max":2510},"safeMint(address,string)":{"calls":12,"min":25660,"mean":158256,"median":188539,"max":196870},"setApprovalForAll(address,bool)":{"calls":1,"min":46263,"mean":46263,"median":46263,"max":46263},"supportsInterface(bytes4)":{"calls":3,"min":277,"mean":333,"median":348,"max":374},"symbol()":{"calls":1,"min":3145,"mean":3145,"median":3145,"max":3145},"tokenByIndex(uint256)":{"calls":3,"min":4832,"mean":4832,"median":4832,"max":4832},"tokenOfOwnerByIndex(address,uint256)":{"calls":3,"min":4822,"mean":4822,"median":4822,"max":4822},"tokenURI(uint256)":{"calls":2,"min":7037,"mean":8765,"median":8765,"max":10493},"totalSupply()":{"calls":1,"min":2344,"mean":2344,"median":2344,"max":2344},"transferFrom(address,address,uint256)":{"calls":3,"min":64315,"mean":65211,"median":64753,"max":66565},"unpause()":{"calls":1,"min":27573,"mean":27573,"median":27573,"max":27573}}}]
+

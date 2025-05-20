@@ -1,5 +1,9 @@
 [{
-    "compilerSettings": {}
+    "compilerSettings": {
+        "optimizer": false,
+        "optimizer_runs": 0,
+        "via_ir": false
+    }
 },
 {"contract":"src/MyToken.sol:MyToken","deployment":{"gas":2792490,"size":13091},"functions":{"balanceOf(address,uint256)":{"calls":8,"min":2520,"mean":2520,"median":2520,"max":2520},"burn(address,uint256,uint256)":{"calls":1,"min":42293,"mean":42293,"median":42293,"max":42293},"burnBatch(address,uint256[],uint256[])":{"calls":1,"min":56563,"mean":56563,"median":56563,"max":56563},"mint(address,uint256,uint256,bytes)":{"calls":5,"min":24732,"mean":82796,"median":97056,"max":98081},"mintBatch(address,uint256[],uint256[],bytes)":{"calls":2,"min":145294,"mean":146469,"median":146469,"max":147644},"pause()":{"calls":4,"min":23485,"mean":26591,"median":27627,"max":27627},"paused()":{"calls":2,"min":2457,"mean":2457,"median":2457,"max":2457},"safeTransferFrom(address,address,uint256,uint256,bytes)":{"calls":2,"min":25309,"mean":42249,"median":42249,"max":59190},"setURI(string)":{"calls":2,"min":24411,"mean":26994,"median":26994,"max":29578},"unpause()":{"calls":1,"min":27629,"mean":27629,"median":27629,"max":27629},"uri(uint256)":{"calls":2,"min":2678,"mean":2678,"median":2678,"max":2678}}}]
 
