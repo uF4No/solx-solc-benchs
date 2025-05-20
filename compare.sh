@@ -41,7 +41,7 @@ cd "$TARGET_DIR" || exit 1
 # Set default solc version
 DEFAULT_SOLC="0.8.28"
 
-# Read solc version from foundry.toml with debug info
+# Read solc version from foundry.toml
 echo "Reading foundry.toml for solc version..."
 FOUNDRY_CONTENT=$(cat foundry.toml)
 echo "foundry.toml content:"
@@ -73,99 +73,111 @@ if [ -z "$SOLX_VERSION" ]; then
 fi
 echo "Found solx version: $SOLX_VERSION"
 
-# Read compiler settings from foundry.toml
-echo "Reading compiler settings..."
-OPTIMIZER=$(grep -E '^[[:space:]]*optimizer[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
-OPTIMIZER_RUNS=$(grep -E '^[[:space:]]*optimizer_runs[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
-VIA_IR=$(grep -E '^[[:space:]]*via_ir[[:space:]]*=' foundry.toml | head -n 1 | sed 's/.*=\s*\([^#]*\).*/\1/' | tr -d '[:space:]')
-
-# Set default values if not found
-OPTIMIZER=${OPTIMIZER:-true}
-OPTIMIZER_RUNS=${OPTIMIZER_RUNS:-200}
-VIA_IR=${VIA_IR:-false}
-
-echo "Compiler settings:"
-echo "  - optimizer: $OPTIMIZER"
-echo "  - optimizer_runs: $OPTIMIZER_RUNS"
-echo "  - via_ir: $VIA_IR"
+echo "Preparing comparisons:"
+echo "1. solc v${SOLC_VERSION} with optimizer"
+echo "2. solc v${SOLC_VERSION} with optimizer + via-ir"
+echo "3. solx v${SOLX_VERSION} default"
+echo "4. solx v${SOLX_VERSION} with via-ir"
 echo
 
-echo "Preparing comparison between:"
-echo "  - solc v${SOLC_VERSION}"
-echo "  - solx v${SOLX_VERSION}"
-echo
-
-# Generate filenames with versions
-if [ "$VIA_IR" = "true" ]; then
-    SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-via-ir.json"
-else
-    SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}.json"
-fi
+# Generate report filenames
+SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt.json"
+SOLC_IR_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt-via-ir.json"
 SOLX_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}.json"
+SOLX_IR_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}-via-ir.json"
 
 echo "Will generate files in reports/$TARGET_DIR/:"
-echo "  - Solc report: $(basename "$SOLC_REPORT")"
-echo "  - Solx report: $(basename "$SOLX_REPORT")"
+echo "  - $(basename "$SOLC_REPORT")"
+echo "  - $(basename "$SOLC_IR_REPORT")"
+echo "  - $(basename "$SOLX_REPORT")"
+echo "  - $(basename "$SOLX_IR_REPORT")"
 echo
 
 # Clean up in case of previous runs
 forge clean
-rm -f "$SOLC_REPORT" "$SOLX_REPORT"
+rm -f "$SOLC_REPORT" "$SOLC_IR_REPORT" "$SOLX_REPORT" "$SOLX_IR_REPORT"
 
-# Clean optimizer_runs value by removing underscores
-OPTIMIZER_RUNS_CLEAN=$(echo "$OPTIMIZER_RUNS" | tr -d '_')
-
-# Run tests with solc and generate gas report
-echo "Running solc gas report..."
-if ! forge test --gas-report --json > "$SOLC_REPORT"; then
-    echo "Error: Failed to run forge test for solc"
-    exit 1
-fi
-
-# Create a temporary file with the compiler settings
-TMP_SETTINGS=$(mktemp)
-echo '[{
+# Function to create compiler settings JSON
+create_settings_json() {
+    local optimizer=$1
+    local optimizer_runs=$2
+    local via_ir=$3
+    echo '[{
     "compilerSettings": {
-        "optimizer": '"$OPTIMIZER"',
-        "optimizer_runs": '"$OPTIMIZER_RUNS_CLEAN"',
-        "via_ir": '"$VIA_IR"'
+        "optimizer": '"$optimizer"',
+        "optimizer_runs": '"$optimizer_runs"',
+        "via_ir": '"$via_ir"'
     }
-},' > "$TMP_SETTINGS"
+},'
+}
 
-# Read the original file content (skipping the first [)
-tail -c +2 "$SOLC_REPORT" > "$SOLC_REPORT.tmp"
+# Function to run test and generate report
+run_test() {
+    local output_file=$1
+    local profile=$2
+    local via_ir=$3
+    local settings_json=$4
+    
+    echo "Running tests for $(basename "$output_file")..."
+    
+    local cmd="forge test --gas-report --json"
+    if [ -n "$profile" ]; then
+        cmd="FOUNDRY_PROFILE=$profile $cmd"
+    fi
+    if [ "$via_ir" = "true" ]; then
+        cmd="$cmd --via-ir"
+    fi
+    
+    if ! eval "$cmd > $output_file.tmp"; then
+        echo "Error: Failed to run forge test"
+        return 1
+    fi
+    
+    # Create a temporary file with the compiler settings
+    local tmp_settings=$(mktemp)
+    echo "$settings_json" > "$tmp_settings"
+    
+    # Read the original file content (skipping the first [)
+    tail -c +2 "$output_file.tmp" > "$output_file.tmp2"
+    
+    # Combine the files
+    cat "$tmp_settings" "$output_file.tmp2" > "$output_file"
+    rm "$tmp_settings" "$output_file.tmp" "$output_file.tmp2"
+    
+    forge clean
+    return 0
+}
 
-# Combine the files
-cat "$TMP_SETTINGS" "$SOLC_REPORT.tmp" > "$SOLC_REPORT"
-rm "$TMP_SETTINGS" "$SOLC_REPORT.tmp"
-
-# Clean up
-forge clean
-
-# Run tests with solx and generate gas report
-echo "Running solx gas report..."
-if ! FOUNDRY_PROFILE=solx forge test --gas-report --json > "$SOLX_REPORT"; then
-    echo "Error: Failed to run forge test for solx"
+# 1. Run solc with optimizer
+settings_json=$(create_settings_json true 200 false)
+if ! run_test "$SOLC_REPORT" "" false "$settings_json"; then
     exit 1
 fi
 
-# Create a temporary file with the compiler settings
-TMP_SETTINGS=$(mktemp)
-echo '[{
-    "compilerSettings": {}
-},' > "$TMP_SETTINGS"
+# 2. Run solc with optimizer + via-ir
+settings_json=$(create_settings_json true 200 true)
+if ! run_test "$SOLC_IR_REPORT" "" true "$settings_json"; then
+    exit 1
+fi
 
-# Read the original file content (skipping the first [)
-tail -c +2 "$SOLX_REPORT" > "$SOLX_REPORT.tmp"
+# 3. Run solx default
+settings_json=$(create_settings_json false 0 false)
+if ! run_test "$SOLX_REPORT" "solx" false "$settings_json"; then
+    exit 1
+fi
 
-# Combine the files
-cat "$TMP_SETTINGS" "$SOLX_REPORT.tmp" > "$SOLX_REPORT"
-rm "$TMP_SETTINGS" "$SOLX_REPORT.tmp"
+# 4. Run solx with via-ir
+settings_json=$(create_settings_json false 0 true)
+if ! run_test "$SOLX_IR_REPORT" "solx" true "$settings_json"; then
+    exit 1
+fi
 
 echo
 echo "Generated files in reports/$TARGET_DIR/:"
-echo "  Solc report: $(basename "$SOLC_REPORT")"
-echo "  Solx report: $(basename "$SOLX_REPORT")"
+echo "  - $(basename "$SOLC_REPORT")"
+echo "  - $(basename "$SOLC_IR_REPORT")"
+echo "  - $(basename "$SOLX_REPORT")"
+echo "  - $(basename "$SOLX_IR_REPORT")"
 
 # Return to the root directory
 cd "$ROOT_DIR" || exit 1

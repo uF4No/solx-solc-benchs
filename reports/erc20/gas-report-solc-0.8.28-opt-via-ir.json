@@ -1,0 +1,9 @@
+[{
+    "compilerSettings": {
+        "optimizer": true,
+        "optimizer_runs": 200,
+        "via_ir": true
+    }
+},
+{"contract":"src/MyToken.sol:MyToken","deployment":{"gas":576086,"size":2374},"functions":{"allowance(address,address)":{"calls":2567,"min":2736,"mean":2736,"median":2736,"max":2736},"approve(address,uint256)":{"calls":1544,"min":23885,"mean":42816,"median":45629,"max":46181},"balanceOf(address)":{"calls":5133,"min":2495,"mean":2495,"median":2495,"max":2495},"name()":{"calls":1,"min":392,"mean":392,"median":392,"max":392},"symbol()":{"calls":1,"min":558,"mean":558,"median":558,"max":558},"transfer(address,uint256)":{"calls":300,"min":28085,"mean":50325,"median":50821,"max":50917},"transferFrom(address,address,uint256)":{"calls":1538,"min":30647,"mean":45510,"median":39307,"max":56407}}}]
+

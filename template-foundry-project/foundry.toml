@@ -2,8 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-optimizer = true
 optimizer_runs = 20000
+# No need to run with the optimizer and via-ir settings. The compare.sh script will run with and without them.
+# optimizer = true
 # via_ir = true # Uncomment to use via IR
 
 [profile.solx]

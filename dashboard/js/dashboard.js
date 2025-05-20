@@ -113,7 +113,6 @@ function rgbToHsl(rgb) {
 // Function to calculate gas differences for a single contract
 function calculateContractDiff(contractData) {
     const results = [];
-    let totalGasChange = 0;
     let methodCount = 0;
 
     // Find compiler settings objects and contract objects
@@ -129,7 +128,8 @@ function calculateContractDiff(contractData) {
                 functionData[funcName] = [];
             }
             // Add compiler settings to the version data
-            const settings = settingsObjects.find(s => s.compiler.type === version.compiler.type)?.compilerSettings || {};
+            const settings = settingsObjects.find(s => s.compiler.type === version.compiler.type && 
+                s.compiler.version === version.compiler.version)?.compilerSettings || {};
             functionData[funcName].push({
                 compiler: version.compiler,
                 gas: data.mean,
@@ -138,18 +138,48 @@ function calculateContractDiff(contractData) {
         });
     });
 
+    // Find solx default version (without via-ir)
+    const solxDefault = contractObjects.find(obj => 
+        obj.compiler.type === 'solx' && 
+        !obj.compiler.version.includes('via-ir')
+    );
+
+    if (!solxDefault) {
+        console.error('No default solx version found');
+        return null;
+    }
+
     // Calculate differences for each function
     Object.entries(functionData).forEach(([funcName, versions]) => {
-        results.push({
-            name: funcName,
-            versions: versions
-        });
-        methodCount++;
+        const solxDefaultVersion = versions.find(v => 
+            v.compiler.type === 'solx' && 
+            !v.compiler.version.includes('via-ir')
+        );
+
+        if (solxDefaultVersion) {
+            const baseGas = solxDefaultVersion.gas;
+            results.push({
+                name: funcName,
+                versions: versions.filter(v => 
+                    v === solxDefaultVersion || // Include solx default
+                    v.compiler.type === 'solc' || // Include all solc versions
+                    (v.compiler.type === 'solx' && v.compiler.version.includes('via-ir')) // Include solx via-ir
+                ).map(v => ({
+                    ...v,
+                    baseGas,
+                    difference: ((v.gas - baseGas) / baseGas * 100).toFixed(2)
+                }))
+            });
+            methodCount++;
+        }
     });
 
     // Get deployment info for all versions
     const deploymentInfo = contractObjects.map(version => {
-        const settings = settingsObjects.find(s => s.compiler.type === version.compiler.type)?.compilerSettings || {};
+        const settings = settingsObjects.find(s => 
+            s.compiler.type === version.compiler.type && 
+            s.compiler.version === version.compiler.version
+        )?.compilerSettings || {};
         return {
             compiler: version.compiler,
             gas: version.deployment.gas,
@@ -157,11 +187,18 @@ function calculateContractDiff(contractData) {
         };
     });
 
+    // Sort deployment info to put solx default first
+    const sortedDeployment = deploymentInfo.sort((a, b) => {
+        if (a.compiler.type === 'solx' && !a.compiler.version.includes('via-ir')) return -1;
+        if (b.compiler.type === 'solx' && !b.compiler.version.includes('via-ir')) return 1;
+        return 0;
+    });
+
     return {
         results,
-        deployment: deploymentInfo,
+        deployment: sortedDeployment,
         methodCount,
-        contractName: contractObjects[0].contract
+        contractName: solxDefault.contract
     };
 }
 
@@ -225,6 +262,21 @@ function createChart(data, index) {
         const maxB = Math.max(...b.versions.map(v => Number(v.gas)));
         return maxB - maxA;
     });
+
+    // Calculate dynamic height based on number of methods
+    // Base height of 400px for up to 10 methods
+    // Add 40px for each additional method
+    const baseHeight = 400;
+    const heightPerMethod = 40;
+    const minMethods = 10;
+    const methodCount = sortedResults.length;
+    const dynamicHeight = methodCount <= minMethods ? 
+        baseHeight : 
+        baseHeight + (methodCount - minMethods) * heightPerMethod;
+
+    // Set container height
+    const container = ctx.canvas.parentElement;
+    container.style.height = `${dynamicHeight}px`;
 
     // Create datasets for each compiler version
     const datasets = [];
@@ -319,15 +371,15 @@ function createChart(data, index) {
 function updateSummary(data, index) {
     const summary = document.getElementById(`summary${index}`);
     
-    // Sort deployment data by gas usage (ascending)
-    const sortedDeployment = [...data.deployment].sort((a, b) => a.gas - b.gas);
+    // Sort deployment data to ensure solx default is first
+    const sortedDeployment = [...data.deployment];
     const baseGas = sortedDeployment[0].gas;
     
     const deploymentHtml = sortedDeployment.map((version, idx) => {
         const percentageIncrease = idx === 0 ? '' : 
             ` <span class="text-red-500 font-medium">(+${((version.gas - baseGas) / baseGas * 100).toFixed(1)}%)</span>`;
             
-        // Add special background for solx row
+        // Add special background for solx rows
         const rowBgClass = version.compiler.type === 'solx' ? 
             'bg-blue-50 border border-blue-100' : 
             'bg-gray-50';
@@ -343,105 +395,53 @@ function updateSummary(data, index) {
         `;
     }).join('');
 
-    // Process method comparisons
-    const methodComparisons = [];
-    data.results.forEach(method => {
-        const versions = method.versions;
-        // Group by compiler type
-        const byCompiler = {};
-        versions.forEach(v => {
-            if (!byCompiler[v.compiler.type]) {
-                byCompiler[v.compiler.type] = {
-                    version: v.compiler.version,
-                    gas: v.gas
-                };
-            }
-        });
-        
-        // Calculate savings if we have both solc and solx
-        if (byCompiler.solc && byCompiler.solx) {
-            const savings = byCompiler.solc.gas - byCompiler.solx.gas;
-            const savingsPercent = (savings / byCompiler.solc.gas) * 100;
-            methodComparisons.push({
-                name: method.name,
-                savings,
-                savingsPercent,
-                solcGas: byCompiler.solc.gas,
-                solxGas: byCompiler.solx.gas
-            });
-        }
-    });
+    // Group versions by compiler type
+    const versions = {
+        solx: data.results[0].versions.filter(v => v.compiler.type === 'solx'),
+        solc: data.results[0].versions.filter(v => v.compiler.type === 'solc')
+    };
 
-    // Sort by savings percentage
-    methodComparisons.sort((a, b) => b.savingsPercent - a.savingsPercent);
+    // Create version selector dropdowns
+    const solxOptions = versions.solx.map(v => 
+        `<option value="${v.compiler.version}" ${!v.compiler.version.includes('via-ir') ? 'selected' : ''}>${v.compiler.version}</option>`
+    ).join('');
 
-    // Count methods where solx is more efficient
-    const solxWins = methodComparisons.filter(m => m.savings > 0).length;
+    const solcOptions = versions.solc.map((v, idx) => 
+        `<option value="${v.compiler.version}" ${idx === 0 ? 'selected' : ''}>${v.compiler.version}</option>`
+    ).join('');
 
-    // Generate comparison summaries
-    const comparisonSummaries = [];
-    const solcVersions = [...new Set(data.results[0].versions
-        .filter(v => v.compiler.type === 'solc')
-        .map(v => v.compiler.version))];
-
-    solcVersions.forEach(solcVersion => {
-        const relevantComparisons = data.results.map(method => {
+    // Function to generate method comparisons
+    function generateMethodComparisons(solxVersion, solcVersion) {
+        const methodComparisons = [];
+        data.results.forEach(method => {
+            const solxData = method.versions.find(v => 
+                v.compiler.type === 'solx' && 
+                v.compiler.version === solxVersion
+            );
             const solcData = method.versions.find(v => 
                 v.compiler.type === 'solc' && 
                 v.compiler.version === solcVersion
             );
-            const solxData = method.versions.find(v => v.compiler.type === 'solx');
-            
-            if (solcData && solxData) {
-                const savings = solcData.gas - solxData.gas;
-                const savingsPercent = (savings / solcData.gas) * 100;
-                return {
-                    name: method.name,
-                    savings,
-                    savingsPercent,
-                    solcGas: solcData.gas,
-                    solxGas: solxData.gas
-                };
+
+            if (solxData && solcData) {
+                const baseGas = solxData.gas;
+                const savings = solcData.gas - baseGas;
+                const savingsPercent = (savings / baseGas) * 100;
+                if (Math.abs(savingsPercent) > 1) {  // Only show differences > 1%
+                    methodComparisons.push({
+                        name: method.name,
+                        savings,
+                        savingsPercent,
+                        baseGas: baseGas,
+                        comparedGas: solcData.gas
+                    });
+                }
             }
-            return null;
-        }).filter(Boolean);
+        });
+        return methodComparisons;
+    }
 
-        // Sort by savings percentage
-        relevantComparisons.sort((a, b) => b.savingsPercent - a.savingsPercent);
-
-        if (relevantComparisons.length > 0) {
-            const solxWinsCount = relevantComparisons.filter(m => m.savings > 0).length;
-            const efficientMethods = relevantComparisons
-                .filter(m => m.savings > 0)
-                .map(m => `
-                    <div class="flex justify-between items-center bg-white rounded-lg p-3 font-mono text-sm">
-                        <span class="text-gray-900">${m.name}</span>
-                        <div class="flex items-center gap-3">
-                            <span class="text-solc">${m.solcGas.toLocaleString()}</span>
-                            <span class="text-gray-400">→</span>
-                            <span class="text-solx">${m.solxGas.toLocaleString()}</span>
-                            <span class="text-green-500">(${m.savingsPercent.toFixed(2)}%)</span>
-                        </div>
-                    </div>
-                `).join('');
-            
-            comparisonSummaries.push(`
-                <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-                    <div class="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <h5 class="font-semibold text-gray-900">solx vs solc ${solcVersion}</h5>
-                        <span class="text-gray-500 text-sm">${solxWinsCount} out of ${relevantComparisons.length} methods</span>
-                    </div>
-                    <div class="p-6">
-                        <div class="text-gray-700 font-medium mb-4">methods where solx is more efficient:</div>
-                        <div class="space-y-2">
-                            ${efficientMethods}
-                        </div>
-                    </div>
-                </div>
-            `);
-        }
-    });
-
+    // Create the summary HTML
     summary.innerHTML = `
         <div class="space-y-6">
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -461,13 +461,59 @@ function updateSummary(data, index) {
                     <div class="text-gray-600 pb-4 mb-6 border-b border-gray-200">
                         Total Methods Tested: ${data.methodCount}
                     </div>
-                    <div class="space-y-6">
-                        ${comparisonSummaries.join('')}
+                    <div class="flex gap-4 mb-6">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">solx version</label>
+                            <select class="version-select w-full px-3 py-2 rounded-lg border border-gray-300" data-compiler="solx">
+                                ${solxOptions}
+                            </select>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">solc version</label>
+                            <select class="version-select w-full px-3 py-2 rounded-lg border border-gray-300" data-compiler="solc">
+                                ${solcOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div id="methodComparisons${index}" class="space-y-2">
                     </div>
                 </div>
             </div>
         </div>
     `;
+
+    // Function to update method comparisons
+    function updateMethodComparisons() {
+        const solxVersion = summary.querySelector('[data-compiler="solx"]').value;
+        const solcVersion = summary.querySelector('[data-compiler="solc"]').value;
+        const comparisons = generateMethodComparisons(solxVersion, solcVersion);
+        
+        // Sort by absolute percentage difference
+        comparisons.sort((a, b) => Math.abs(b.savingsPercent) - Math.abs(a.savingsPercent));
+
+        const methodComparisonsHtml = comparisons.map(m => `
+            <div class="flex justify-between items-center bg-white rounded-lg p-3 font-mono text-sm border border-gray-100">
+                <span class="text-gray-900">${m.name}</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-solx">${m.baseGas.toLocaleString()}</span>
+                    <span class="text-gray-400">→</span>
+                    <span class="text-solc">${m.comparedGas.toLocaleString()}</span>
+                    <span class="${m.savingsPercent > 0 ? 'text-red-500' : 'text-green-500'}">(${m.savingsPercent > 0 ? '+' : ''}${m.savingsPercent.toFixed(2)}%)</span>
+                </div>
+            </div>
+        `).join('');
+
+        const methodComparisonsContainer = document.getElementById(`methodComparisons${index}`);
+        methodComparisonsContainer.innerHTML = methodComparisonsHtml || '<div class="text-gray-500 text-center py-4">No significant differences found</div>';
+    }
+
+    // Add event listeners to dropdowns
+    summary.querySelectorAll('.version-select').forEach(select => {
+        select.addEventListener('change', updateMethodComparisons);
+    });
+
+    // Initial update
+    updateMethodComparisons();
 }
 
 // Function to update the dashboard

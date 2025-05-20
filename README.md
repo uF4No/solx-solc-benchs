@@ -49,7 +49,7 @@ We provide a Foundry template in `/template-foundry-project` that includes:
 3. **Add your contracts and tests:**
    - Place contracts in `my-contracts/src/`
    - Add tests in `my-contracts/test/`
-   - Update `foundry.toml` if needed
+   - Update `foundry.toml` if needed (note that the compare.sh script will run with and without the optimizer and via-ir settings so you don't need to worry about it)
 
 4. **Setup solx compiler:**
    - Download the latest version from [the releases page](https://github.com/matter-labs/solx/releases)
@@ -91,9 +91,11 @@ The `compare.sh` script automates the entire process of generating gas reports a
 This will:
 1. Read the solc version from your project's `foundry.toml`
 2. Extract the solx version from the binary path
-3. Generate gas reports for both compilers in `reports/my-contracts/`:
-   - `gas-report-solc-{version}.json`
-   - `gas-report-solx-{version}.json`
+3. Generate gas reports for four different configurations:
+   - `gas-report-solc-{version}-opt.json` (solc with optimizer)
+   - `gas-report-solc-{version}-opt-via-ir.json` (solc with optimizer + via-ir)
+   - `gas-report-solx-{version}.json` (solx with default settings)
+   - `gas-report-solx-{version}-via-ir.json` (solx with via-ir)
 4. Build the interactive dashboard automatically
 
 After the script completes:
@@ -102,14 +104,18 @@ After the script completes:
 3. View detailed gas comparisons for:
    - Contract deployment costs
    - Method-by-method gas usage
-   - Multiple compiler versions (if available)
+   - Multiple compiler configurations
 
 The dashboard features:
 - Interactive charts showing gas usage comparisons
 - Detailed deployment cost analysis
-- Method-by-method gas usage breakdown
-- Support for multiple compiler versions
-- Color-coded visualization (purple for solc, blue for solx)
+- Method-by-method gas usage breakdown with:
+  - Selectable version comparison dropdowns
+  - Percentage differences between solx and solc
+  - Color-coded visualization (blue for solx, purple for solc)
+  - Highlighting of significant gas differences (>1%)
+
+Note: The script ignores any optimizer and via-ir settings in your `foundry.toml` to ensure consistent comparison across all configurations.
 
 ---
 
