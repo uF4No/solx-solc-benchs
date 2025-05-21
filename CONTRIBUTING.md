@@ -22,7 +22,7 @@ git submodule update --init --recursive
 
 1. **Fork and clone this repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/solx-solc-benchs
+   git clone https://github.com/uF4No/solx-solc-benchs
    cd solx-solc-benchs
    ```
 
@@ -36,12 +36,8 @@ git submodule update --init --recursive
 3. **Add dependencies:**
    > ⚠️ Important: Always add dependencies from the root of the repository to maintain a single `.gitmodules` file.
    
-   From the root directory:
+   Install dependencies as submodules from the root directory:
    ```bash
-   # Add forge-std (required for all projects)
-   git submodule add https://github.com/foundry-rs/forge-std.git my-contracts/lib/forge-std
-   
-   # Add other common dependencies as needed:
    # For OpenZeppelin contracts:
    git submodule add https://github.com/OpenZeppelin/openzeppelin-contracts.git my-contracts/lib/openzeppelin-contracts
    # For Solady:
@@ -69,6 +65,7 @@ git submodule update --init --recursive
      [profile.solx]
      solc_version = "../binaries-solx/solx-macosx-v0.1.0-alpha.3"
      ```
+     Note that the `optimizer` and `via-ir` settings are not needed as the `compare.sh` script will run with both settings.
 
 6. **Run benchmarks:**
    ```bash
