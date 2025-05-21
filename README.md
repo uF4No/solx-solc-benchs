@@ -59,6 +59,8 @@ For detailed instructions on contributing new projects, managing dependencies, a
 
 ## 🌐 Running the Dashboard Locally
 
+![Dashboard](./dashboard.gif)
+
 1. **Run benchmarks for your project:**
    ```bash
    ./compare.sh my-contracts
