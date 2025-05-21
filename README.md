@@ -61,18 +61,10 @@ For detailed instructions on contributing new projects, managing dependencies, a
 
 ![Dashboard](./dashboard.gif)
 
-1. **Run benchmarks for your project:**
-   ```bash
-   ./compare.sh my-contracts
-   ```
-   This will:
-   - Generate gas reports in `reports/my-contracts/`
-   - Automatically build the dashboard
-
-2. **View the dashboard:**
+1. **View the dashboard:**
    - Open `dashboard/index.html` in your browser
 
-3. **Understanding the results:**
+2. **Understanding the results:**
    - Select your project from the dropdown menu
    - Compare gas costs between solx and solc versions
    - View detailed method-by-method comparisons
