@@ -26,107 +26,77 @@ We want real-world usage data. By submitting your own contracts (or forks of exi
 
 ---
 
-## 🧰 Project Template
+## 🧰 Quick Start
 
-We provide a Foundry template in `/template-foundry-project` that includes:
-
-- Basic Foundry configuration with both `solx` and `solc` compiler targets
-- A test suite scaffold
-- Integration with the comparison script
-
----
-
-## 🛠 How to Contribute
-
-1. **Fork this repository**
-
-2. **Create your project from the template:**
+1. **Clone and set up:**
    ```bash
-   # Replace 'my-contracts' with your project name (e.g., erc20, nft-marketplace, etc.)
-   cp -r ./template-foundry-project my-contracts/
+   git clone https://github.com/matter-labs/solx-solc-benchs
+   cd solx-solc-benchs
+   git submodule update --init --recursive
    ```
 
-3. **Add your contracts and tests:**
-   - Place contracts in `my-contracts/src/`
-   - Add tests in `my-contracts/test/`
-   - Update `foundry.toml` if needed (note that the compare.sh script will run with and without the optimizer and via-ir settings so you don't need to worry about it)
-
-4. **Setup solx compiler:**
-   - Download the latest version from [the releases page](https://github.com/matter-labs/solx/releases)
-   - Create and place it in the `./binaries-solx` folder:
-     ```bash
-     mv path/to/downloaded/solx-macosx-v0.1.0-alpha.3 binaries-solx/
-     chmod +x binaries-solx/solx-macosx-v0.1.0-alpha.3
-     ```
-   - Update your project's `foundry.toml` to point to the binary:
-     ```toml
-     [profile.solx]
-     solc_version = "../binaries-solx/solx-macosx-v0.1.0-alpha.3"
-     ```
-
-5. **Run benchmarks and submit PR:**
+2. **Add your project:**
    ```bash
-   # Generate gas reports and build dashboard
+   # Create from template
+   cp -r ./template-foundry-project my-contracts/
+   
+   # See CONTRIBUTING.md for detailed setup instructions
+   ```
+
+3. **Run benchmarks:**
+   ```bash
    ./compare.sh my-contracts
    ```
-   - Create a new branch: `git checkout -b add/my-contracts`
-   - Commit your changes
-   - Push and create a PR
-   - Fill out the PR template with:
-     - Contract details and source
-     - Test coverage information
-     - Interesting benchmark findings
-     - Any edge cases or observations
+
+4. **View results:**
+   - Open `dashboard/index.html` in your browser
+   - Select your project from the dropdown
+   - Compare gas usage across different compiler configurations
+
+For detailed instructions on contributing new projects, managing dependencies, and running benchmarks, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-## 📊 Running Benchmarks
+## 📊 Dashboard Features
 
-The `compare.sh` script automates the entire process of generating gas reports and building the visualization dashboard:
+The interactive dashboard provides:
+- Contract deployment cost comparisons
+- Method-by-method gas usage analysis
+- Multiple compiler configuration comparisons:
+  - solc with optimizer
+  - solc with optimizer + via-ir
+  - solx with default settings
+  - solx with via-ir
+- Visual indicators for significant gas differences (>1%)
+- Color-coded results (blue for solx, purple for solc)
 
-```bash
-./compare.sh my-contracts
-```
+## 🌐 Running the Dashboard Locally
 
-This will:
-1. Read the solc version from your project's `foundry.toml`
-2. Extract the solx version from the binary path
-3. Generate gas reports for four different configurations:
-   - `gas-report-solc-{version}-opt.json` (solc with optimizer)
-   - `gas-report-solc-{version}-opt-via-ir.json` (solc with optimizer + via-ir)
-   - `gas-report-solx-{version}.json` (solx with default settings)
-   - `gas-report-solx-{version}-via-ir.json` (solx with via-ir)
-4. Build the interactive dashboard automatically
+1. **Run benchmarks for your project:**
+   ```bash
+   ./compare.sh my-contracts
+   ```
+   This will:
+   - Generate gas reports in `reports/my-contracts/`
+   - Automatically build the dashboard
 
-After the script completes:
-1. Open `dashboard/index.html` in your browser
-2. Select your project from the dropdown
-3. View detailed gas comparisons for:
-   - Contract deployment costs
-   - Method-by-method gas usage
-   - Multiple compiler configurations
+2. **View the dashboard:**
+   - Open `dashboard/index.html` in your browser
+   - For local development, you can use any static file server:
+     ```bash
+     # Using Python 3
+     python3 -m http.server --directory dashboard/
+     
+     # Using Node.js (after installing http-server)
+     npx http-server dashboard/
+     ```
+   - Visit `http://localhost:8000` (or the port shown in your terminal)
 
-The dashboard features:
-- Interactive charts showing gas usage comparisons
-- Detailed deployment cost analysis
-- Method-by-method gas usage breakdown with:
-  - Selectable version comparison dropdowns
-  - Percentage differences between solx and solc
-  - Color-coded visualization (blue for solx, purple for solc)
-  - Highlighting of significant gas differences (>1%)
-
-Note: The script ignores any optimizer and via-ir settings in your `foundry.toml` to ensure consistent comparison across all configurations.
-
----
-
-## 💡 Guidelines
-
-- You can add contracts you've written or fork existing open-source ones
-- Keep submissions focused on one contract or suite per folder for clarity
-- Prefer Solidity 0.8.x for now (matching current Solx compatibility)
-- Be descriptive in your PR using the provided template
-- Include all relevant compiler settings in your `foundry.toml`
-- Make sure all tests pass with both compilers before submitting
+3. **Understanding the results:**
+   - Select your project from the dropdown menu
+   - Compare gas costs between solx and solc versions
+   - View detailed method-by-method comparisons
+   - Check deployment costs and optimizations
 
 ## 📢 Got Feedback?
 
