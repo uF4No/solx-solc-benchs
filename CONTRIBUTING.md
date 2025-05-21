@@ -4,141 +4,120 @@ Thank you for your interest in contributing to the solx vs solc benchmark suite!
 
 ## 📦 Dependency Management
 
-This repository uses Git submodules to manage dependencies. This approach ensures that:
+This repository uses Git submodules to manage dependencies. All dependencies are tracked in a single `.gitmodules` file at the root of the repository. This ensures:
 - Dependencies are tracked at specific versions
-- The `lib/` folder is not committed to the repository
-- Dependencies can be easily updated and managed
+- Dependencies are properly shared across projects
+- The `lib/` folders are not committed to the repository
 
-When adding a new project, follow these steps to manage dependencies:
+### Setting Up Dependencies
 
-1. **Add `.gitignore` entry:**
-   ```
-   lib/
-   ```
-
-2. **Install dependencies as submodules:**
-   ```bash
-   # Install forge-std (required for all projects)
-   forge install foundry-rs/forge-std
-   
-   # Install other common dependencies
-   # For OpenZeppelin contracts:
-   forge install openzeppelin/openzeppelin-contracts
-   # For Solmate:
-   forge install transmissions11/solmate
-   # For Solady:
-   forge install vectorized/solady
-   ```
-
-3. **Verify submodules are properly configured:**
-   ```bash
-   # Check submodule status
-   git submodule status
-   
-   # If needed, initialize and update submodules
-   git submodule update --init --recursive
-   ```
-
-4. **When committing changes:**
-   - The `.gitmodules` file should be committed
-   - The `lib/` folder should be ignored
-   - Submodule references will be tracked automatically
-
-Note: If you get a "command not found" error with forge, make sure you have Foundry installed and your PATH is configured correctly.
-
-### Installing All Project Dependencies
-
-If you've cloned this repository and want to set up all existing projects, you can initialize and update all submodules at once:
+After cloning the repository, initialize all submodules:
 
 ```bash
 # Initialize and update all submodules recursively
 git submodule update --init --recursive
-
-# Verify all submodules are properly initialized
-git submodule status
-```
-
-This will install dependencies for all projects including:
-- `forge-std` for all projects
-- `openzeppelin-contracts` for ERC token projects
-- `solady` for optimized implementations
-- `solmate` for minimal implementations
-
-If you're only interested in a specific project, you can initialize just that project's submodules:
-
-```bash
-# For example, to set up just the erc20 project:
-git submodule update --init --recursive erc20/lib/forge-std erc20/lib/solady
-
-# Or for the erc721 project:
-git submodule update --init --recursive erc721/lib/forge-std erc721/lib/openzeppelin-contracts
 ```
 
 ## 🛠 Adding a New Project
 
-1. **Fork this repository**
+1. **Fork and clone this repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/solx-solc-benchs
+   cd solx-solc-benchs
+   ```
 
 2. **Create your project from the template:**
    ```bash
-   # Replace 'my-contracts' with your project name (e.g., erc20, nft-marketplace, etc.)
-   cp -r ./template-foundry-project my-contracts/
+   # Replace 'my-contracts' with your project name (e.g., erc20, nft-marketplace)
+   cp -r template-foundry-project my-contracts
+   cd my-contracts
    ```
 
-3. **Set up dependencies:**
+3. **Add dependencies:**
+   > ⚠️ Important: Always add dependencies from the root of the repository to maintain a single `.gitmodules` file.
+   
+   From the root directory:
    ```bash
-   cd my-contracts/
+   # Add forge-std (required for all projects)
+   git submodule add https://github.com/foundry-rs/forge-std.git my-contracts/lib/forge-std
    
-   # Remove any existing lib directory
-   git rm -r --cached lib/ || true
-   rm -rf lib/
-   
-   # Install forge-std (required)
-   forge install foundry-rs/forge-std
-   
-   # Install other dependencies as needed, for example:
-   forge install openzeppelin/openzeppelin-contracts  # For ERC standards
-   forge install vectorized/solady                    # For gas optimizations
-   forge install transmissions11/solmate              # For minimal implementations
+   # Add other common dependencies as needed:
+   # For OpenZeppelin contracts:
+   git submodule add https://github.com/OpenZeppelin/openzeppelin-contracts.git my-contracts/lib/openzeppelin-contracts
+   # For Solady:
+   git submodule add https://github.com/vectorized/solady.git my-contracts/lib/solady
    ```
 
 4. **Add your contracts and tests:**
    - Place contracts in `my-contracts/src/`
    - Add tests in `my-contracts/test/`
-   - Update `foundry.toml` if needed (note that the compare.sh script will run with and without the optimizer and via-ir settings so you don't need to worry about it)
-   - Ensure `lib/` is in your `.gitignore`
+   - Ensure all tests pass with both compilers
 
 5. **Setup solx compiler:**
    - Download the latest version from [the releases page](https://github.com/matter-labs/solx/releases)
-   - Create and place it in the `./binaries-solx` folder:
+   - Add it to the `binaries-solx` folder:
      ```bash
+     mkdir -p binaries-solx
      mv path/to/downloaded/solx-macosx-v0.1.0-alpha.3 binaries-solx/
      chmod +x binaries-solx/solx-macosx-v0.1.0-alpha.3
      ```
-   - Update your project's `foundry.toml` to point to the binary:
+   - Update your project's `foundry.toml`:
      ```toml
+     [profile.default]
+     solc = "0.8.28"  # or your preferred version
+
      [profile.solx]
      solc_version = "../binaries-solx/solx-macosx-v0.1.0-alpha.3"
      ```
 
-6. **Run benchmarks and submit PR:**
+6. **Run benchmarks:**
    ```bash
-   # Generate gas reports and build dashboard
+   # From the root directory
    ./compare.sh my-contracts
    ```
-   - Create a new branch: `git checkout -b add/my-contracts`
-   - Commit your changes (including `.gitmodules` but excluding `lib/`)
-   - Push and create a PR
-   - Fill out the PR template with:
-     - Contract details and source
-     - Test coverage information
-     - Interesting benchmark findings
-     - Any edge cases or observations
+   This will:
+   - Generate gas reports in `reports/my-contracts/`
+   - Build the dashboard automatically
+
+7. **Submit your PR:**
+   ```bash
+   git checkout -b add/my-contracts
+   git add .gitmodules my-contracts/ reports/my-contracts/
+   git commit -m "Add my-contracts project"
+   git push origin add/my-contracts
+   ```
+   - Create a PR and fill out the template
+   - Include interesting findings or observations
 
 ## 💡 Guidelines
 
-- You can add contracts you've written or fork existing open-source ones
-- Keep submissions focused on one contract or suite per folder for clarity
-- Prefer Solidity 0.8.x for now (matching current Solx compatibility)
-- Be descriptive in your PR using the provided template
-- Include all relevant compiler settings in your `foundry.toml`
-- Make sure all tests pass with both compilers before submitting 
+- Focus on Solidity 0.8.x contracts (current Solx compatibility)
+- Keep projects focused and well-documented
+- Ensure all tests pass with both compilers
+- Add meaningful test cases that exercise different aspects of the contracts
+- Include gas-intensive operations to make benchmarks meaningful
+
+## 🔍 Common Issues
+
+1. **Dependency already exists:**
+   If you get an error that a submodule already exists, it means another project is already using it. You can reuse the existing submodule:
+   ```bash
+   # From the root directory
+   git submodule update --init --recursive my-contracts/lib/dependency-name
+   ```
+
+2. **Wrong dependency path:**
+   Always add submodules from the root directory and include the full path to your project's lib folder:
+   ```bash
+   # ✅ Correct (from root):
+   git submodule add https://github.com/foundry-rs/forge-std.git my-contracts/lib/forge-std
+   
+   # ❌ Wrong (from project directory):
+   git submodule add https://github.com/foundry-rs/forge-std.git lib/forge-std
+   ```
+
+3. **Missing dependencies:**
+   If you see "dependency not found" errors, make sure to initialize submodules:
+   ```bash
+   git submodule update --init --recursive
+   ```

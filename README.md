@@ -57,19 +57,6 @@ For detailed instructions on contributing new projects, managing dependencies, a
 
 ---
 
-## 📊 Dashboard Features
-
-The interactive dashboard provides:
-- Contract deployment cost comparisons
-- Method-by-method gas usage analysis
-- Multiple compiler configuration comparisons:
-  - solc with optimizer
-  - solc with optimizer + via-ir
-  - solx with default settings
-  - solx with via-ir
-- Visual indicators for significant gas differences (>1%)
-- Color-coded results (blue for solx, purple for solc)
-
 ## 🌐 Running the Dashboard Locally
 
 1. **Run benchmarks for your project:**
@@ -82,15 +69,6 @@ The interactive dashboard provides:
 
 2. **View the dashboard:**
    - Open `dashboard/index.html` in your browser
-   - For local development, you can use any static file server:
-     ```bash
-     # Using Python 3
-     python3 -m http.server --directory dashboard/
-     
-     # Using Node.js (after installing http-server)
-     npx http-server dashboard/
-     ```
-   - Visit `http://localhost:8000` (or the port shown in your terminal)
 
 3. **Understanding the results:**
    - Select your project from the dropdown menu
