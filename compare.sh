@@ -10,33 +10,103 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-# Check if directory argument is provided
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <directory>"
-    echo "Example: $0 erc721"
+# Function to print usage
+print_usage() {
+    echo "Usage: $0 [-project PATH] [directory]"
+    echo
+    echo "Options:"
+    echo "  -project PATH    Compare a project at the specified path"
+    echo "  directory        Compare a project in the current repository"
+    echo
+    echo "Examples:"
+    echo "  $0 erc721                          # Compare erc721 project in this repo"
+    echo "  $0 -project ../my-other-project    # Compare project at ../my-other-project"
+}
+
+# Parse arguments
+PROJECT_PATH=""
+TARGET_DIR=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -project)
+            if [ -z "$2" ]; then
+                echo "Error: -project requires a path argument"
+                print_usage
+                exit 1
+            fi
+            PROJECT_PATH="$2"
+            shift 2
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            if [ -z "$TARGET_DIR" ]; then
+                TARGET_DIR="$1"
+            else
+                echo "Error: Too many arguments"
+                print_usage
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# If neither project path nor target directory is provided
+if [ -z "$PROJECT_PATH" ] && [ -z "$TARGET_DIR" ]; then
+    echo "Error: No project specified"
+    print_usage
     exit 1
 fi
 
-TARGET_DIR="$1"
-
-# Check if directory exists
-if [ ! -d "$TARGET_DIR" ]; then
-    echo "Error: Directory '$TARGET_DIR' does not exist"
+# If both project path and target directory are provided
+if [ -n "$PROJECT_PATH" ] && [ -n "$TARGET_DIR" ]; then
+    echo "Error: Cannot specify both -project and directory"
+    print_usage
     exit 1
 fi
 
-# Check if foundry.toml exists in the target directory
-if [ ! -f "$TARGET_DIR/foundry.toml" ]; then
-    echo "Error: No foundry.toml found in '$TARGET_DIR'"
-    exit 1
+# Function to validate and get project path
+get_project_path() {
+    local path=$1
+    # Convert to absolute path if relative
+    if [[ ! "$path" = /* ]]; then
+        path="$ROOT_DIR/$path"
+    fi
+    
+    # Check if directory exists
+    if [ ! -d "$path" ]; then
+        echo "Error: Directory '$path' does not exist"
+        exit 1
+    fi
+    
+    # Check if foundry.toml exists
+    if [ ! -f "$path/foundry.toml" ]; then
+        echo "Error: No foundry.toml found in '$path'"
+        exit 1
+    fi
+    
+    echo "$path"
+}
+
+# Set the project directory based on input
+if [ -n "$PROJECT_PATH" ]; then
+    PROJECT_DIR=$(get_project_path "$PROJECT_PATH")
+    # For external projects, use the last directory name as TARGET_DIR
+    TARGET_DIR=$(basename "$PROJECT_DIR")
+else
+    PROJECT_DIR=$(get_project_path "$TARGET_DIR")
 fi
 
 # Create reports directory structure
-REPORTS_DIR="reports/$TARGET_DIR"
+REPORTS_DIR="$ROOT_DIR/reports/$TARGET_DIR"
 mkdir -p "$REPORTS_DIR"
 
-# Change to target directory
-cd "$TARGET_DIR" || exit 1
+# Change to project directory
+cd "$PROJECT_DIR" || exit 1
 
 # Set default solc version
 DEFAULT_SOLC="0.8.28"
@@ -65,10 +135,30 @@ else
     echo "Found solc version: $SOLC_VERSION"
 fi
 
-# Read solx version from foundry.toml (extract version number from the path)
-SOLX_VERSION=$(grep 'solc_version.*solx.*' foundry.toml | sed -n 's/.*solx-.*-v\([0-9].*\)"/\1/p')
+# Check for solx binary
+SOLX_BINARY=$(find "$ROOT_DIR/binaries-solx" -type f -name "solx-*" | grep -E 'solx-(linux|macosx|windows).*v[0-9]+\.[0-9]+\.[0-9]+.*' | head -n 1)
+if [ ! -f "$SOLX_BINARY" ]; then
+    echo "🛑 Error: solx binary not found in ./binaries-solx/"
+    echo "Please download it from https://github.com/matter-labs/solx/releases"
+    echo "and place it in the binaries-solx directory"
+    echo
+    echo "Supported binary names:"
+    echo "  - solx-linux-amd64-gnu-v*.*.* (Linux AMD64)"
+    echo "  - solx-linux-arm64-gnu-v*.*.* (Linux ARM64)"
+    echo "  - solx-macosx-v*.*.*         (macOS)"
+    echo "  - solx-windows-amd64-gnu-v*.*.*.exe (Windows)"
+    exit 1
+fi
+
+# Make sure the binary is executable (except on Windows)
+if [[ ! "$SOLX_BINARY" =~ \.exe$ ]]; then
+    chmod +x "$SOLX_BINARY"
+fi
+
+# Extract solx version from binary name
+SOLX_VERSION=$(basename "$SOLX_BINARY" | sed -n 's/.*-v\([0-9].*\)/\1/p')
 if [ -z "$SOLX_VERSION" ]; then
-    echo "Error: No solx version found in foundry.toml"
+    echo "Error: Could not determine solx version from binary name"
     exit 1
 fi
 echo "Found solx version: $SOLX_VERSION"
@@ -81,10 +171,10 @@ echo "4. solx v${SOLX_VERSION} with via-ir"
 echo
 
 # Generate report filenames
-SOLC_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt.json"
-SOLC_IR_REPORT="../$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt-via-ir.json"
-SOLX_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}.json"
-SOLX_IR_REPORT="../$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}-via-ir.json"
+SOLC_REPORT="$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt.json"
+SOLC_IR_REPORT="$REPORTS_DIR/gas-report-solc-${SOLC_VERSION}-opt-via-ir.json"
+SOLX_REPORT="$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}.json"
+SOLX_IR_REPORT="$REPORTS_DIR/gas-report-solx-${SOLX_VERSION}-via-ir.json"
 
 echo "Will generate files in reports/$TARGET_DIR/:"
 echo "  - $(basename "$SOLC_REPORT")"
@@ -158,6 +248,11 @@ fi
 settings_json=$(create_settings_json true 200 true)
 if ! run_test "$SOLC_IR_REPORT" "" true "$settings_json"; then
     exit 1
+fi
+
+# Create temporary solx profile in foundry.toml if it doesn't exist
+if ! grep -q '\[profile\.solx\]' foundry.toml; then
+    echo -e "\n[profile.solx]\nsolc_version = \"$SOLX_BINARY\"" >> foundry.toml
 fi
 
 # 3. Run solx default
