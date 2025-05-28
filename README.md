@@ -53,6 +53,25 @@ We want real-world usage data. By submitting your own contracts (or forks of exi
    - Select your project from the dropdown
    - Compare gas usage across different compiler configurations
 
+## 🔍 Testing Local Projects
+
+You can test any local Foundry project without adding it to this repository using the `-project` flag:
+
+```bash
+# Test a project in a different directory
+./compare.sh -project ../my-other-project
+
+# Test the current project you're working on
+./compare.sh -project .
+```
+
+Requirements for local projects:
+- Must be a Foundry project (contains `foundry.toml`)
+- Should have tests that use the gas report feature
+- The solc version will be read from your `foundry.toml`
+
+The results will appear in the dashboard under the project's directory name.
+
 For detailed instructions on contributing new projects, managing dependencies, and running benchmarks, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
