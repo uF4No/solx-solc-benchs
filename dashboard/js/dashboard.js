@@ -376,8 +376,8 @@ function updateSummary(data, index) {
     const baseGas = sortedDeployment[0].gas;
     
     const deploymentHtml = sortedDeployment.map((version, idx) => {
-        const percentageIncrease = idx === 0 ? '' : 
-            ` <span class="text-red-500 font-medium">(+${((version.gas - baseGas) / baseGas * 100).toFixed(1)}%)</span>`;
+        const percentageDiff = idx === 0 ? '' : 
+            ` <span class="${baseGas > version.gas ? 'text-green-500' : 'text-red-500'} font-medium">(${((version.gas - baseGas) / baseGas * 100).toFixed(1)}%)</span>`;
             
         // Add special background for solx rows
         const rowBgClass = version.compiler.type === 'solx' ? 
@@ -389,7 +389,7 @@ function updateSummary(data, index) {
                 <span class="${version.compiler.type === 'solx' ? 'text-solx font-medium' : 'text-gray-700'}">${version.compiler.type} ${version.compiler.version}</span>
                 <div class="flex items-center gap-2">
                     <span class="text-gray-900 font-medium">${version.gas.toLocaleString()} gas</span>
-                    ${percentageIncrease}
+                    ${percentageDiff}
                 </div>
             </div>
         `;

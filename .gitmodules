@@ -1,6 +1,30 @@
-[submodule "templates/foundry-project/lib/forge-std"]
-	path = templates/foundry-project/lib/forge-std
+[submodule "template-foundry-project/lib/forge-std"]
+	path = template-foundry-project/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "oz-stablecoin/lib/openzeppelin-contracts"]
-	path = oz-stablecoin/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "erc20/lib/forge-std"]
+	path = erc20/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "erc20/lib/solady"]
+	path = erc20/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "erc721/lib/forge-std"]
+	path = erc721/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "erc1155/lib/forge-std"]
+	path = erc1155/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "short-algos/lib/forge-std"]
+	path = short-algos/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "solmate-sample/lib/forge-std"]
+	path = solmate-sample/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "solmate-sample/lib/solmate"]
+	path = solmate-sample/lib/solmate
+	url = https://github.com/transmissions11/solmate
+[submodule "erc721/lib/openzeppelin-contracts"]
+	path = erc721/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "erc1155/lib/openzeppelin-contracts"]
+	path = erc1155/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
